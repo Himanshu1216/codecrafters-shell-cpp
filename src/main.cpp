@@ -13,11 +13,21 @@ int main() {
     std::cout << "$ ";
     std::cin >> user_input;
 
-    if(user_input == "exit") {
+    std::string comm1 = "", comm2 = "";
+    int len = user_input.size();
+    for(int i = 0; i < len; i++) {
+      if(user_input[i] == ' ') {
+        comm1 = user_input.substr(0, i);
+        comm2 = user_input.substr(i + 1, len - i - 1);
+        break;
+      }
+    }
+
+    if(comm1 == "exit") {
       return 0;
     }
-    else if(user_input == "echo") {
-      std::cout << user_input << '\n';
+    else if(comm1 == "echo") {
+      std::cout << comm2 << '\n';
     }
     else std::cout << user_input << ": " << "command not found\n";
   }
