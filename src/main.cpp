@@ -13,7 +13,7 @@ int main() {
     std::cout << "$ ";
     std::getline(std::cin, user_input);
 
-    std::string comm1 = "", comm2 = "";
+    std::string comm1 = user_input, comm2 = "";
     int len = user_input.size();
     for(int i = 0; i < len; i++) {
       if(user_input[i] == ' ') {
