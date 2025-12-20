@@ -1,7 +1,33 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unistd.h>
 
+bool checkCommand(const std::string& cmd) {
+  if(cmd == "type" || cmd == "echo" || cmd == "exit") {
+    std::cout << cmd << " is a shell builtin\n";
+    return true;
+  }
+  char* pathenv = getenv("PATH");
+  if(!pathenv) {
+    return false;
+  }
+  std::string path(pathenv);
+  std::string currpath = "";
+  bool gotLocation = false;
+  for(int i = 0; i < path.size(); i++) {
+    if(path[i] == ':') {
+      std::string fullpath = currpath + '/' + cmd;
+      if(access(fullpath.c_str(), X_OK) == 0) {
+        std::cout << cmd << " is " << fullpath << '\n';
+        return true;
+      }
+      currpath = "";
+    }
+    else currpath += path[i];
+  }
+  return false;
+}
 
 int main() {
   // Flush after every std::cout / std:cerr
@@ -31,10 +57,7 @@ int main() {
 
     if(cmd1 == "type") {
       for(int i = 1; i < user_input.size(); i++) {
-        if(user_input[i] == "exit" || user_input[i] == "echo" || user_input[i] == "type") {
-          std::cout << user_input[i] << " is a shell builtin\n";
-        } 
-        else {
+        if(!checkCommand(user_input[i])) {
           std::cout << user_input[i] << ": not found\n";
         }
       }      
@@ -52,5 +75,4 @@ int main() {
       std::cout << input << ": command not found\n";
     }
   }
-
 }
