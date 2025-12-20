@@ -11,7 +11,7 @@ int main() {
   
   while(true) {
     std::cout << "$ ";
-    std::cin >> user_input;
+    std::getline(std::cin, user_input);
 
     std::string comm1 = "", comm2 = "";
     int len = user_input.size();
