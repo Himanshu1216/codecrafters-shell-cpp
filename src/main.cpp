@@ -3,18 +3,22 @@
 #include <vector>
 #include <unistd.h>
 
+using namespace std;
+
 bool checkCommand(const std::string& cmd) {
   if(cmd == "type" || cmd == "echo" || cmd == "exit") {
     std::cout << cmd << " is a shell builtin\n";
     return true;
   }
+
   char* pathenv = getenv("PATH");
   if(!pathenv) {
     return false;
   }
+
   std::string path(pathenv);
   std::string currpath = "";
-  bool gotLocation = false;
+
   for(int i = 0; i < path.size(); i++) {
     if(path[i] == ':') {
       std::string fullpath = currpath + '/' + cmd;
@@ -26,7 +30,49 @@ bool checkCommand(const std::string& cmd) {
     }
     else currpath += path[i];
   }
+
   return false;
+}
+
+vector<string> tokenize(string& input) {
+    vector<string> user_input;
+    string word = "";
+    for(int i = 0; i < input.size(); i++) {
+      if(input[i] == ' ') {
+        user_input.push_back(word);
+        word = "";
+      }
+      else word += input[i];
+    }
+    user_input.push_back(word);
+    return user_input;
+}
+
+void run_external(vector<string>& user_input) {
+    vector<char*> input;
+    for(string& s : user_input) {
+        input.push_back(const_cast<char*>(s.c_str()));
+    }
+    input.push_back(nullptr);
+    pid_t pid = fork();
+    if(pid == 0) {
+        // child process
+        execvp(input[0], input.data());
+        // perror("execvp");
+        exit(127);
+    }
+    else if(pid > 0) {
+        // parent process
+        int status;
+        waitpid(pid, &status, 0);
+        if(WIFEXITED(status) && WEXITSTATUS(status) == 127) {
+            cout << input[0] << ": command not found\n";
+        }
+    }
+    else {
+        perror("fork");
+    }
+    // cout << "world\n";
 }
 
 int main() {
@@ -43,15 +89,7 @@ int main() {
     std::cout << "$ ";
     std::getline(std::cin, input);
 
-    std::string word = "";
-    for(int i = 0; i < input.size(); i++) {
-      if(input[i] == ' ') {
-        user_input.push_back(word);
-        word = "";
-      }
-      else word += input[i];
-    }
-    user_input.push_back(word);
+    vector<string> user_input = tokenize(input);
 
     std::string cmd1 = user_input[0];
 
@@ -71,8 +109,6 @@ int main() {
       }
       std::cout << '\n';
     }
-    else {
-      std::cout << input << ": command not found\n";
-    }
+    else run_external(user_input);
   }
 }
