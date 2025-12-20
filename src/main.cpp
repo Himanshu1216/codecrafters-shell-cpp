@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
+#include <sys/wait.h>
 
 using namespace std;
 
