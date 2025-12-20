@@ -49,7 +49,7 @@ int main() {
       std::cout << '\n';
     }
     else {
-      std::cout << input << " command not found\n";
+      std::cout << input << ": command not found\n";
     }
   }
 
