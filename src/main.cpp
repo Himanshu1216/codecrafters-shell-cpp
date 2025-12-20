@@ -31,7 +31,7 @@ int main() {
 
     if(cmd1 == "type") {
       for(int i = 1; i < user_input.size(); i++) {
-        if(user_input[i] == "exit" || user_input[i] == "echo") {
+        if(user_input[i] == "exit" || user_input[i] == "echo" || user_input[i] == "type") {
           std::cout << user_input[i] << " is a shell builtin\n";
         } 
         else {
