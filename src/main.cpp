@@ -8,7 +8,7 @@
 using namespace std;
 
 bool checkCommand(const std::string& cmd) {
-  if(cmd == "type" || cmd == "echo" || cmd == "exit") {
+  if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd") {
     std::cout << cmd << " is a shell builtin\n";
     return true;
   }
