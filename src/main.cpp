@@ -40,7 +40,7 @@ vector<string> tokenize(string& input) {
     vector<string> user_input;
     string token = "";
     bool open_single = false, open_double = false;
-    input = '*' + input + '*';             
+    input = '*' + input + '*';        
     for(int i = 1; i < input.size() - 1; i++) {
         if(input[i] == ' ') {
             if(open_single || open_double || input[i - 1] == '\\') token += ' ';
@@ -56,7 +56,7 @@ vector<string> tokenize(string& input) {
         }
         else if(open_single) token += input[i];
         else if(input[i] == '\"') {
-            if(input[i - 1] == '\\') token += '\"';
+            if(input[i - 1] == '\\' && i != input.size() - 3) token += '\"';
             else open_double = !open_double;
         }
         else if(input[i] == '\\') {
@@ -64,6 +64,7 @@ vector<string> tokenize(string& input) {
         }
         else token += input[i];
     }
+    cout << "token: " << token << endl;
     if(token != "") user_input.push_back(token);
     return user_input;
 }
