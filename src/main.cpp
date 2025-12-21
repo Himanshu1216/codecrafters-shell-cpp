@@ -40,22 +40,31 @@ vector<string> tokenize(string& input) {
     vector<string> user_input;
     string token = "";
     bool open_single = false, open_double = false;
-    for(int i = 0; i < input.size(); i++) {
+    input = '*' + input + '*';             
+    for(int i = 1; i < input.size() - 1; i++) {
         if(input[i] == ' ') {
-            if(open_single || open_double) token += ' ';
+            if(open_single || open_double || input[i - 1] == '\\') token += ' ';
             else {
                 if(token == "") continue;
                 user_input.push_back(token);
                 token = "";
             }
         }
-        else if(input[i] == '\'' && open_double) {
-            token += '\'';
+        else if(input[i] == '\'') {
+            if(open_double || input[i - 1] == '\\') token += '\'';
+            else open_single = !open_single;
         }
-        else if(input[i] == '\'') open_single = !open_single;
-        else if(input[i] == '\"') open_double = !open_double;
+        else if(input[i] == '\"') {
+            if(input[i - 1] == '\\') token += '\"';
+            else open_double = !open_double;
+        }
+        else if(open_single || open_double) token += input[i];
+        else if(input[i] == '\\') {
+            if(input[i - 1] == '\\' && input[i + 1] != '\\') token += '\\';
+        }
         else token += input[i];
     }
+    user_input.push_back(token);
     return user_input;
 }
 
