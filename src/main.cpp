@@ -39,17 +39,21 @@ bool checkCommand(const std::string& cmd) {
 vector<string> tokenize(string& input) {
     vector<string> user_input;
     string token = "";
-    bool open = false;
+    bool open_single = false, open_double = false;
     for(int i = 0; i < input.size(); i++) {
         if(input[i] == ' ') {
-            if(open) token += ' ';
+            if(open_single || open_double) token += ' ';
             else {
                 if(token == "") continue;
                 user_input.push_back(token);
                 token = "";
             }
         }
-        else if(input[i] == '\'') open = !open;
+        else if(input[i] == '\'' && open_double) {
+            token += '\'';
+        }
+        else if(input[i] == '\'') open_single = !open_single;
+        else if(input[i] == '\"') open_double = !open_double;
         else token += input[i];
     }
     return user_input;
