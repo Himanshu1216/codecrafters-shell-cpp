@@ -38,15 +38,20 @@ bool checkCommand(const std::string& cmd) {
 
 vector<string> tokenize(string& input) {
     vector<string> user_input;
-    string word = "";
+    string token = "";
+    bool open = false;
     for(int i = 0; i < input.size(); i++) {
-      if(input[i] == ' ') {
-        user_input.push_back(word);
-        word = "";
-      }
-      else word += input[i];
+        if(input[i] == ' ') {
+            if(open) token += ' ';
+            else {
+                if(token == "") continue;
+                user_input.push_back(token);
+                token = "";
+            }
+        }
+        else if(input[i] == '\'') open = !open;
+        else token += input[i];
     }
-    user_input.push_back(word);
     return user_input;
 }
 
@@ -90,6 +95,7 @@ int main() {
     user_input.clear();
     std::cout << "$ ";
     std::getline(std::cin, input);
+    input += ' ';
 
     vector<string> user_input = tokenize(input);
 
@@ -106,6 +112,7 @@ int main() {
       return 0;
     }
     else if(cmd1 == "echo") {
+        // cout << user_input.size() << endl;
       for(int i = 1; i < user_input.size(); i++) {
         std::cout << user_input[i] << ' ';
       }
