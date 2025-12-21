@@ -112,7 +112,9 @@ int main() {
       std::cout << '\n';
     }
     else if(cmd1 == "pwd") {
-        cout << filesystem::current_path() << endl;
+        cout << filesystem::current_path().string() << endl; // without .string() path is output with "" to safely represents paths with spaces.
+        // string pwd = filesystem::current_path();
+        // cout << pwd << endl;
     }
     else run_external(user_input);
   }
