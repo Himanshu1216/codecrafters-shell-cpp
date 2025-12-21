@@ -54,11 +54,11 @@ vector<string> tokenize(string& input) {
             if(open_double || input[i - 1] == '\\') token += '\'';
             else open_single = !open_single;
         }
+        else if(open_single) token += input[i];
         else if(input[i] == '\"') {
             if(input[i - 1] == '\\') token += '\"';
             else open_double = !open_double;
         }
-        else if(open_single || open_double) token += input[i];
         else if(input[i] == '\\') {
             if(input[i - 1] == '\\' && input[i + 1] != '\\') token += '\\';
         }
