@@ -117,7 +117,12 @@ int main() {
         // cout << pwd << endl;
     }
     else if(cmd1 == "cd") {
-        if(chdir(user_input[1].c_str()) != 0) {
+        const char* path;
+        if(user_input[1] == "~") {
+            path = getenv("HOME");
+        }
+        else path = user_input[1].c_str();
+        if(chdir(path) != 0) {
             cout << "cd: " << user_input[1] << ": No such file or directory\n";
         }
     }
