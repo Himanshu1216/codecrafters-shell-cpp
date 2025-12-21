@@ -61,7 +61,7 @@ vector<string> tokenize(string& input) {
         }
         else if(input[i] == '\\') {
             if(open_double) {
-                if(input[i + 1] == '\\' || input[i + 1] == '\"') continue;
+                if(input[i + 1] == '\\' || (input[i + 1] == '\"' && i != input.size() - 4)) continue;
                 else token += '\\';
             }
             else if(input[i - 1] == '\\' && input[i + 1] != '\\') token += input[i];
