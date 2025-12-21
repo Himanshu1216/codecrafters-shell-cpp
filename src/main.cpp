@@ -1,14 +1,14 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <unistd.h>
+#include <unistd.h> // chdir, 
 #include <sys/wait.h> // for waitpid
 #include <filesystem> // to get current working directory
 
 using namespace std;
 
 bool checkCommand(const std::string& cmd) {
-  if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd") {
+  if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd" || cmd == "cd") {
     std::cout << cmd << " is a shell builtin\n";
     return true;
   }
@@ -115,6 +115,11 @@ int main() {
         cout << filesystem::current_path().string() << endl; // without .string() path is output with "" to safely represents paths with spaces.
         // string pwd = filesystem::current_path();
         // cout << pwd << endl;
+    }
+    else if(cmd1 == "cd") {
+        if(chdir(user_input[1].c_str()) != 0) {
+            cout << "cd: " << user_input[1] << ": No such file or directory\n";
+        }
     }
     else run_external(user_input);
   }
