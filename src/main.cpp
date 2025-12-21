@@ -64,7 +64,7 @@ vector<string> tokenize(string& input) {
         }
         else token += input[i];
     }
-    user_input.push_back(token);
+    if(token != "") user_input.push_back(token);
     return user_input;
 }
 
