@@ -2,7 +2,8 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
-#include <sys/wait.h>
+#include <sys/wait.h> // for waitpid
+#include <filesystem> // to get current working directory
 
 using namespace std;
 
@@ -109,6 +110,9 @@ int main() {
         std::cout << user_input[i] << ' ';
       }
       std::cout << '\n';
+    }
+    else if(cmd1 == "pwd") {
+        cout << filesystem::current_path() << endl;
     }
     else run_external(user_input);
   }
