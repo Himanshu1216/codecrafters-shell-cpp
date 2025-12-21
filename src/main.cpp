@@ -60,9 +60,15 @@ vector<string> tokenize(string& input) {
             else open_double = !open_double;
         }
         else if(input[i] == '\\') {
-            if(input[i - 1] == '\\' && input[i + 1] != '\\') token += '\\';
+            if(open_double) {
+                if(input[i - 1] != '\\') token += input[i];
+            }
+            else if(input[i - 1] == '\\' && input[i + 1] != '\\') token += input[i];
         }
-        else token += input[i];
+        else {
+            // cout << input[i] << ' ';
+            token += input[i];
+        }
     }
     // cout << "token: " << token << endl;
     if(token != "") user_input.push_back(token);
