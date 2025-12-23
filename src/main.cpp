@@ -81,8 +81,8 @@ void run_external(vector<string>& input) {
     // check for redirect as well, if redirect then write command output to output file
     vector<char*> args;
     string out_file, err_file;
-    bool redirect_out = false;
-    bool redirect_err = false;
+    bool redirect_out = false, append_out = false;
+    bool redirect_err = false, append_err = false;
 
     for(int i = 0; i < input.size(); i++) {
         if(input[i] == ">" || input[i] == "1>") {
@@ -90,8 +90,18 @@ void run_external(vector<string>& input) {
             out_file = input[++i];
             continue;
         }
+        else if(input[i] == ">>" || input[i] == "1>>") {
+            append_out = true;
+            out_file = input[++i];
+            continue;
+        }
         else if(input[i] == "2>") {
             redirect_err = true;
+            err_file = input[++i];
+            continue;
+        }
+        else if(input[i] == "2>>") {
+            append_err = true;
             err_file = input[++i];
             continue;
         }
@@ -120,7 +130,24 @@ void run_external(vector<string>& input) {
             dup2(fd, STDERR_FILENO);
             close(fd);
         }
-
+        if(append_out) {
+            int fd = open(out_file.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+            if(fd < 1) {
+                perror("open");
+                exit(1);
+            }   
+            dup2(fd, STDOUT_FILENO);
+            close(fd);
+        }
+        if(append_out) {
+            int fd = open(err_file.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+            if(fd < 1) {
+                perror("open");
+                exit(1);
+            }   
+            dup2(fd, STDERR_FILENO);
+            close(fd);
+        }
         execvp(args[0], args.data());
         // perror("execvp");
         exit(127);
@@ -194,8 +221,8 @@ int main() {
     std::getline(std::cin, input);
     input += ' ';
 
-    bool redirect_out = false;
-    bool redirect_err = false;
+    bool redirect_out = false, append_out = false;
+    bool redirect_err = false, append_err = false;
     string out_file, err_file;
     vector<string> tokens = tokenize(input);
     vector<string> args;
@@ -206,9 +233,19 @@ int main() {
             out_file = tokens[++i];
             continue;
         }
+        else if(tokens[i] == ">>" || tokens[i] == "1>>") {
+            append_out = true;
+            out_file = tokens[++i];
+            continue;
+        }
         else if(tokens[i] == "2>") {
             redirect_err = true;
             err_file = tokens[++i];
+            continue;
+        }
+        else if(tokens[i] == "2>>") {
+            append_err = true;
+            err_file = input[++i];
             continue;
         }
         args.push_back(tokens[i]);
@@ -232,6 +269,20 @@ int main() {
             close(fd);
         }
 
+        if(append_out) {
+            saved_stdout = dup(STDOUT_FILENO);
+            int fd = open(out_file.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+            dup2(fd, STDOUT_FILENO);
+            close(fd);
+        }
+
+        if(append_err) {
+            saved_stderr = dup(STDERR_FILENO);
+            int fd = open(err_file.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+            dup2(fd, STDERR_FILENO);
+            close(fd);
+        }
+
         run_builtin(args);
 
         if(redirect_out) {
@@ -240,6 +291,16 @@ int main() {
         }
 
         if(redirect_err) {
+            dup2(saved_stderr, STDERR_FILENO);
+            close(saved_stderr);
+        }
+
+        if(append_out) {
+            dup2(saved_stdout, STDOUT_FILENO);
+            close(saved_stdout);
+        }
+
+        if(append_err) {
             dup2(saved_stderr, STDERR_FILENO);
             close(saved_stderr);
         }
