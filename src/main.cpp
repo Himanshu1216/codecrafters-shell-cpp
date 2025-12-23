@@ -109,45 +109,34 @@ void run_external(vector<string>& input) {
     }
     args.push_back(nullptr);
     pid_t pid = fork();
+
+    // cout << "output_file: " << out_file << endl;
+    // cout << input[2] << endl;
+
     if(pid == 0) {
         // child process
 
-        if(redirect_out) {
-            int fd = open(out_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if(fd < 1) {
-                perror("open");
+        if(redirect_out || append_out) {
+            int flags = O_WRONLY | O_CREAT | (append_out ? O_APPEND : O_TRUNC);
+            int fd = open(out_file.c_str(), flags, 0644);
+            if(fd < 0) {
+                // perror("open");
                 exit(1);
             }   
             dup2(fd, STDOUT_FILENO);
             close(fd);
         }
-        if(redirect_err) {
-            int fd = open(err_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if(fd < 1) {
-                perror("open");
+        if(redirect_err || append_err) {
+            int flags = O_WRONLY | O_CREAT | (append_err ? O_APPEND : O_TRUNC);
+            int fd = open(err_file.c_str(), flags, 0644);
+            if(fd < 0) {
+                // perror("open");
                 exit(1);
             }   
             dup2(fd, STDERR_FILENO);
             close(fd);
         }
-        if(append_out) {
-            int fd = open(out_file.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
-            if(fd < 1) {
-                perror("open");
-                exit(1);
-            }   
-            dup2(fd, STDOUT_FILENO);
-            close(fd);
-        }
-        if(append_out) {
-            int fd = open(err_file.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
-            if(fd < 1) {
-                perror("open");
-                exit(1);
-            }   
-            dup2(fd, STDERR_FILENO);
-            close(fd);
-        }
+
         execvp(args[0], args.data());
         // perror("execvp");
         exit(127);
@@ -245,7 +234,7 @@ int main() {
         }
         else if(tokens[i] == "2>>") {
             append_err = true;
-            err_file = input[++i];
+            err_file = tokens[++i];
             continue;
         }
         args.push_back(tokens[i]);
@@ -255,55 +244,34 @@ int main() {
         int saved_stdout = -1;
         int saved_stderr = -1;
 
-        if(redirect_out) {
+        if(redirect_out || append_out) {
             saved_stdout = dup(STDOUT_FILENO);
-            int fd = open(out_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            int flags = O_WRONLY | O_CREAT | (append_out ? O_APPEND : O_TRUNC);
+            int fd = open(out_file.c_str(), flags, 0644);
             dup2(fd, STDOUT_FILENO);
             close(fd);
         }
 
-        if(redirect_err) {
+        if(redirect_err || append_err) {
             saved_stderr = dup(STDERR_FILENO);
-            int fd = open(err_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            dup2(fd, STDERR_FILENO);
-            close(fd);
-        }
-
-        if(append_out) {
-            saved_stdout = dup(STDOUT_FILENO);
-            int fd = open(out_file.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
-            dup2(fd, STDOUT_FILENO);
-            close(fd);
-        }
-
-        if(append_err) {
-            saved_stderr = dup(STDERR_FILENO);
-            int fd = open(err_file.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+            int flags = O_WRONLY | O_CREAT | (append_err ? O_APPEND : O_TRUNC);
+            int fd = open(err_file.c_str(), flags, 0644);
             dup2(fd, STDERR_FILENO);
             close(fd);
         }
 
         run_builtin(args);
 
-        if(redirect_out) {
+        if(saved_stdout != -1) {
             dup2(saved_stdout, STDOUT_FILENO);
             close(saved_stdout);
         }
 
-        if(redirect_err) {
+        if(saved_stderr != -1) {
             dup2(saved_stderr, STDERR_FILENO);
             close(saved_stderr);
         }
 
-        if(append_out) {
-            dup2(saved_stdout, STDOUT_FILENO);
-            close(saved_stdout);
-        }
-
-        if(append_err) {
-            dup2(saved_stderr, STDERR_FILENO);
-            close(saved_stderr);
-        }
     }
     else run_external(tokens);
   }
