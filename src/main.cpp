@@ -4,6 +4,7 @@
 #include <unistd.h> // chdir, 
 #include <sys/wait.h> // for waitpid
 #include <filesystem> // to get current working directory
+#include <fcntl.h> // open, O_* flags
 
 using namespace std;
 
@@ -77,15 +78,34 @@ vector<string> tokenize(string& input) {
 }
 
 void run_external(vector<string>& user_input) {
-    vector<char*> input;
-    for(string& s : user_input) {
-        input.push_back(const_cast<char*>(s.c_str()));
+    // check for redirect as well, if redirect then write command output to output file
+    vector<char*> args;
+    string output_file;
+    bool redirect = false;
+    for(int i = 0; i < user_input.size(); i++) {
+        if(user_input[i] == ">" || user_input[i] == "1>") {
+            redirect = true;
+            output_file = user_input[i + 1];
+            break;
+        }
+        args.push_back(const_cast<char*>(user_input[i].c_str()));
     }
-    input.push_back(nullptr);
+    args.push_back(nullptr);
     pid_t pid = fork();
     if(pid == 0) {
         // child process
-        execvp(input[0], input.data());
+
+        if(redirect) {
+            int fd = open(output_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if(fd < 1) {
+                perror("open");
+                exit(1);
+            }   
+            dup2(fd, STDOUT_FILENO);
+            close(fd);
+        }
+
+        execvp(args[0], args.data());
         // perror("execvp");
         exit(127);
     }
@@ -94,7 +114,7 @@ void run_external(vector<string>& user_input) {
         int status;
         waitpid(pid, &status, 0);
         if(WIFEXITED(status) && WEXITSTATUS(status) == 127) {
-            cout << input[0] << ": command not found\n";
+            cout << args[0] << ": command not found\n";
         }
     }
     else {
@@ -151,7 +171,7 @@ int main() {
         }
         else path = user_input[1].c_str();
         if(chdir(path) != 0) {
-            cout << "cd: " << user_input[1] << ": No such file or directory\n";
+            cout << "cd: " << user_input[1] << ": No such file or directoryyyy\n";
         }
     }
     else run_external(user_input);
