@@ -80,13 +80,20 @@ vector<string> tokenize(string& input) {
 void run_external(vector<string>& input) {
     // check for redirect as well, if redirect then write command output to output file
     vector<char*> args;
-    string output_file;
-    bool redirect = false;
+    string out_file, err_file;
+    bool redirect_out = false;
+    bool redirect_err = false;
+
     for(int i = 0; i < input.size(); i++) {
         if(input[i] == ">" || input[i] == "1>") {
-            redirect = true;
-            output_file = input[i + 1];
-            break;
+            redirect_out = true;
+            out_file = input[++i];
+            continue;
+        }
+        else if(input[i] == "2>") {
+            redirect_err = true;
+            err_file = input[++i];
+            continue;
         }
         args.push_back(const_cast<char*>(input[i].c_str()));
     }
@@ -95,13 +102,22 @@ void run_external(vector<string>& input) {
     if(pid == 0) {
         // child process
 
-        if(redirect) {
-            int fd = open(output_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if(redirect_out) {
+            int fd = open(out_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
             if(fd < 1) {
                 perror("open");
                 exit(1);
             }   
             dup2(fd, STDOUT_FILENO);
+            close(fd);
+        }
+        if(redirect_err) {
+            int fd = open(err_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if(fd < 1) {
+                perror("open");
+                exit(1);
+            }   
+            dup2(fd, STDERR_FILENO);
             close(fd);
         }
 
@@ -178,34 +194,54 @@ int main() {
     std::getline(std::cin, input);
     input += ' ';
 
-    bool redirect = false;
-    string output_file;
+    bool redirect_out = false;
+    bool redirect_err = false;
+    string out_file, err_file;
     vector<string> tokens = tokenize(input);
     vector<string> args;
     
     for(int i = 0; i < tokens.size(); i++) {
         if(tokens[i] == ">" || tokens[i] == "1>") {
-            redirect = true;
-            output_file = tokens[i + 1];
-            break;
+            redirect_out = true;
+            out_file = tokens[++i];
+            continue;
+        }
+        else if(tokens[i] == "2>") {
+            redirect_err = true;
+            err_file = tokens[++i];
+            continue;
         }
         args.push_back(tokens[i]);
     }
 
     if(is_builtin(args[0])) {
         int saved_stdout = -1;
-        if(redirect) {
+        int saved_stderr = -1;
+
+        if(redirect_out) {
             saved_stdout = dup(STDOUT_FILENO);
-            int fd = open(output_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            int fd = open(out_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
             dup2(fd, STDOUT_FILENO);
+            close(fd);
+        }
+
+        if(redirect_err) {
+            saved_stderr = dup(STDERR_FILENO);
+            int fd = open(err_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            dup2(fd, STDERR_FILENO);
             close(fd);
         }
 
         run_builtin(args);
 
-        if(redirect) {
+        if(redirect_out) {
             dup2(saved_stdout, STDOUT_FILENO);
             close(saved_stdout);
+        }
+
+        if(redirect_err) {
+            dup2(saved_stderr, STDERR_FILENO);
+            close(saved_stderr);
         }
     }
     else run_external(tokens);
