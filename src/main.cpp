@@ -77,18 +77,18 @@ vector<string> tokenize(string& input) {
     return user_input;
 }
 
-void run_external(vector<string>& user_input) {
+void run_external(vector<string>& input) {
     // check for redirect as well, if redirect then write command output to output file
     vector<char*> args;
     string output_file;
     bool redirect = false;
-    for(int i = 0; i < user_input.size(); i++) {
-        if(user_input[i] == ">" || user_input[i] == "1>") {
+    for(int i = 0; i < input.size(); i++) {
+        if(input[i] == ">" || input[i] == "1>") {
             redirect = true;
-            output_file = user_input[i + 1];
+            output_file = input[i + 1];
             break;
         }
-        args.push_back(const_cast<char*>(user_input[i].c_str()));
+        args.push_back(const_cast<char*>(input[i].c_str()));
     }
     args.push_back(nullptr);
     pid_t pid = fork();
@@ -123,6 +123,46 @@ void run_external(vector<string>& user_input) {
     // cout << "world\n";
 }
 
+bool is_builtin(string cmd) {
+    if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd" || cmd == "cd") return true;
+    return false;
+}
+
+void run_builtin(vector<string>& args) {
+    string cmd = args[0];
+    if(cmd == "type") {
+        for(int i = 1; i < args.size(); i++) {
+            if(!checkCommand(args[i])) {
+                std::cout << args[i] << ": not found\n";
+            }
+        }   
+    }
+    else if(cmd == "exit") {
+        exit(0);
+    }
+    else if(cmd == "echo") {
+        for(int i = 1; i < args.size(); i++) {
+            cout << args[i] << ' ';
+        }
+        cout << '\n';
+    }
+    else if(cmd == "cd") {
+        const char* path;
+        if(args[1] == "~") {
+            path = getenv("HOME");
+        }
+        else path = args[1].c_str();
+        if(chdir(path) != 0) {
+            cout << "cd: " << args[1] << ": No such file or directory\n";
+        }
+    }
+    else if(cmd == "pwd") {
+        cout << filesystem::current_path().string() << endl; // without .string() path is output with "" to safely represents paths with spaces.
+        // string pwd = filesystem::current_path();
+        // cout << pwd << endl;
+    }
+}
+
 int main() {
   // Flush after every std::cout / std:cerr
   std::cout << std::unitbuf;
@@ -138,42 +178,36 @@ int main() {
     std::getline(std::cin, input);
     input += ' ';
 
-    vector<string> user_input = tokenize(input);
+    bool redirect = false;
+    string output_file;
+    vector<string> tokens = tokenize(input);
+    vector<string> args;
+    
+    for(int i = 0; i < tokens.size(); i++) {
+        if(tokens[i] == ">" || tokens[i] == "1>") {
+            redirect = true;
+            output_file = tokens[i + 1];
+            break;
+        }
+        args.push_back(tokens[i]);
+    }
 
-    std::string cmd1 = user_input[0];
+    if(is_builtin(args[0])) {
+        int saved_stdout = -1;
+        if(redirect) {
+            saved_stdout = dup(STDOUT_FILENO);
+            int fd = open(output_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            dup2(fd, STDOUT_FILENO);
+            close(fd);
+        }
 
-    if(cmd1 == "type") {
-      for(int i = 1; i < user_input.size(); i++) {
-        if(!checkCommand(user_input[i])) {
-          std::cout << user_input[i] << ": not found\n";
-        }
-      }      
-    }
-    else if(cmd1 == "exit") {
-      return 0;
-    }
-    else if(cmd1 == "echo") {
-        // cout << user_input.size() << endl;
-      for(int i = 1; i < user_input.size(); i++) {
-        std::cout << user_input[i] << ' ';
-      }
-      std::cout << '\n';
-    }
-    else if(cmd1 == "pwd") {
-        cout << filesystem::current_path().string() << endl; // without .string() path is output with "" to safely represents paths with spaces.
-        // string pwd = filesystem::current_path();
-        // cout << pwd << endl;
-    }
-    else if(cmd1 == "cd") {
-        const char* path;
-        if(user_input[1] == "~") {
-            path = getenv("HOME");
-        }
-        else path = user_input[1].c_str();
-        if(chdir(path) != 0) {
-            cout << "cd: " << user_input[1] << ": No such file or directoryyyy\n";
+        run_builtin(args);
+
+        if(redirect) {
+            dup2(saved_stdout, STDOUT_FILENO);
+            close(saved_stdout);
         }
     }
-    else run_external(user_input);
+    else run_external(tokens);
   }
 }
