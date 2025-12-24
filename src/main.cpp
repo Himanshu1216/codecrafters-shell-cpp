@@ -176,12 +176,9 @@ void run_builtin(vector<string>& args) {
         exit(0);
     }
     else if(cmd == "echo") {
-        cout << "hello\n";
+        // cout << "hello\n";
         for(int i = 1; i < args.size(); i++) {
-            cout << i << ' ';
-            cout << args[i];
-            cout << endl;
-            // if(i != args.size() - 1) cout << ' ';
+            cout << args[i] << ' ';
         }
         cout << '\n';
     }
@@ -267,8 +264,8 @@ int main() {
     free(line);
 
     // input += ' ';
-    cout << input.size() << endl;
-    cout << input << endl;
+    // cout << input.size() << endl;
+    // cout << input << endl;
 
     bool redirect_out = false, append_out = false;
     bool redirect_err = false, append_err = false;
