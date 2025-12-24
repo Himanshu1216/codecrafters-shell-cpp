@@ -5,6 +5,8 @@
 #include <sys/wait.h> // for waitpid
 #include <filesystem> // to get current working directory
 #include <fcntl.h> // open, O_* flags
+#include <dirent.h> // for get_path_exec
+#include <sys/stat.h> //for get_path_exec
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -199,43 +201,111 @@ void run_builtin(vector<string>& args) {
     }
 }
 
+std::vector<std::string> get_path_executables() {
+    std::vector<std::string> result;
+
+    char* path_env = getenv("PATH");
+    if (!path_env) return result;
+
+    std::string path(path_env);
+    std::string dir;
+
+    for (char c : path) {
+        if (c == ':') {
+            if (!dir.empty()) {
+                DIR* dp = opendir(dir.c_str());
+                if (dp) {
+                    struct dirent* entry;
+                    while ((entry = readdir(dp)) != nullptr) {
+                        std::string name = entry->d_name;
+                        std::string full = dir + "/" + name;
+
+                        struct stat st;
+                        if (stat(full.c_str(), &st) == 0 &&
+                            S_ISREG(st.st_mode) &&
+                            (st.st_mode & S_IXUSR)) {
+                            result.push_back(name);
+                        }
+                    }
+                    closedir(dp);
+                }
+            }
+            dir.clear();
+        } else {
+            dir += c;
+        }
+    }
+
+    // last PATH entry
+    if (!dir.empty()) {
+        DIR* dp = opendir(dir.c_str());
+        if (dp) {
+            struct dirent* entry;
+            while ((entry = readdir(dp)) != nullptr) {
+                std::string name = entry->d_name;
+                std::string full = dir + "/" + name;
+
+                struct stat st;
+                if (stat(full.c_str(), &st) == 0 &&
+                    S_ISREG(st.st_mode) &&
+                    (st.st_mode & S_IXUSR)) {
+                    result.push_back(name);
+                }
+            }
+            closedir(dp);
+        }
+    }
+
+    return result;
+}
+
+
 const char* builtins[] = {
     "echo",
     "exit",
     nullptr
 };
 
-/**
- * Generator function
- * Called repeatedly by readline when TAB is pressed
- */
-char* builtin_generator(const char* text, int state) {
-    static int index;
+char* command_generator(const char* text, int state) {
+    static size_t index;
     static size_t len;
+    static std::vector<std::string> matches;
 
     if (state == 0) {
         index = 0;
         len = strlen(text);
-    }
+        matches.clear();
 
-    while (builtins[index]) {
-        const char* cmd = builtins[index++];
-        if (strncmp(cmd, text, len) == 0) {
-            // Add trailing space as required
-            // std::string completion = std::string(cmd) + " ";
-            string completion = string(cmd);
-            return strdup(completion.c_str());
+        // builtins
+        for (int i = 0; builtins[i]; i++) {
+            if (strncmp(builtins[i], text, len) == 0) {
+                matches.push_back(builtins[i]);
+            }
+        }
+
+        // PATH executables
+        for (const auto& exe : get_path_executables()) {
+            if (exe.compare(0, len, text) == 0) {
+                matches.push_back(exe);
+            }
         }
     }
+
+    if (index < matches.size()) {
+        std::string completion = matches[index++] + " ";
+        return strdup(completion.c_str());
+    }
+
     return nullptr;
 }
+
 
 char** completion(const char* text, int start, int end) {
     // Only complete the first word (command position)
     if (start != 0)
         return nullptr;
 
-    return rl_completion_matches(text, builtin_generator);
+    return rl_completion_matches(text, command_generator);
 }
 
 
