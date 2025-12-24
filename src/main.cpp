@@ -6,6 +6,9 @@
 #include <filesystem> // to get current working directory
 #include <fcntl.h> // open, O_* flags
 
+#include <readline/readline.h>
+#include <readline/history.h>
+
 using namespace std;
 
 bool checkCommand(const std::string& cmd) {
@@ -195,20 +198,70 @@ void run_builtin(vector<string>& args) {
     }
 }
 
-int main() {
-  // Flush after every std::cout / std:cerr
-  std::cout << std::unitbuf;
-  std::cerr << std::unitbuf;
+const char* builtins[] = {
+    "echo",
+    "exit",
+    nullptr
+};
 
-  // TODO: Uncomment the code below to pass the first stage
-  std::vector<std::string> user_input;
-  std::string input;
+/**
+ * Generator function
+ * Called repeatedly by readline when TAB is pressed
+ */
+char* builtin_generator(const char* text, int state) {
+    static int index;
+    static size_t len;
+
+    if (state == 0) {
+        index = 0;
+        len = strlen(text);
+    }
+
+    while (builtins[index]) {
+        const char* cmd = builtins[index++];
+        if (strncmp(cmd, text, len) == 0) {
+            // Add trailing space as required
+            std::string completion = std::string(cmd) + " ";
+            return strdup(completion.c_str());
+        }
+    }
+    return nullptr;
+}
+
+char** completion(const char* text, int start, int end) {
+    // Only complete the first word (command position)
+    if (start != 0)
+        return nullptr;
+
+    return rl_completion_matches(text, builtin_generator);
+}
+
+
+int main() {
+    // Flush after every std::cout / std:cerr
+    std::cout << std::unitbuf;
+    std::cerr << std::unitbuf;
+
+    // TODO: Uncomment the code below to pass the first stage
+    std::string input;
   
+    // Register completion function
+    rl_attempted_completion_function = completion;
+
   while(true) {
-    user_input.clear();
-    std::cout << "$ ";
-    std::getline(std::cin, input);
-    input += ' ';
+    // std::cout << "$ ";
+    // std::getline(std::cin, input);
+
+    char* line = readline("$ ");
+    if (!line) break;           // Ctrl+D exits shell
+
+    if (*line)
+        add_history(line);      // optional but recommended
+
+    input = line;
+    free(line);
+
+    // input += ' ';
 
     bool redirect_out = false, append_out = false;
     bool redirect_err = false, append_err = false;
