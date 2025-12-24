@@ -176,8 +176,12 @@ void run_builtin(vector<string>& args) {
         exit(0);
     }
     else if(cmd == "echo") {
+        cout << "hello\n";
         for(int i = 1; i < args.size(); i++) {
-            cout << args[i] << ' ';
+            cout << i << ' ';
+            cout << args[i];
+            cout << endl;
+            // if(i != args.size() - 1) cout << ' ';
         }
         cout << '\n';
     }
@@ -221,7 +225,8 @@ char* builtin_generator(const char* text, int state) {
         const char* cmd = builtins[index++];
         if (strncmp(cmd, text, len) == 0) {
             // Add trailing space as required
-            std::string completion = std::string(cmd) + " ";
+            // std::string completion = std::string(cmd) + " ";
+            string completion = string(cmd);
             return strdup(completion.c_str());
         }
     }
@@ -262,6 +267,8 @@ int main() {
     free(line);
 
     // input += ' ';
+    cout << input.size() << endl;
+    cout << input << endl;
 
     bool redirect_out = false, append_out = false;
     bool redirect_err = false, append_err = false;
