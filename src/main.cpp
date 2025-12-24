@@ -263,7 +263,7 @@ int main() {
     input = line;
     free(line);
 
-    // input += ' ';
+    input += ' ';
     // cout << input.size() << endl;
     // cout << input << endl;
 
