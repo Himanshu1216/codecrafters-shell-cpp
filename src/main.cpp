@@ -292,7 +292,7 @@ char* command_generator(const char* text, int state) {
     }
 
     if (index < matches.size()) {
-        std::string completion = matches[index++] + " ";
+        std::string completion = matches[index++];
         return strdup(completion.c_str());
     }
 
