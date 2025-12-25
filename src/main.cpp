@@ -308,6 +308,76 @@ char** completion(const char* text, int start, int end) {
     return rl_completion_matches(text, command_generator);
 }
 
+char** to_argv(const std::vector<std::string>& cmd) {
+    char** argv = new char*[cmd.size() + 1];
+    for (size_t i = 0; i < cmd.size(); i++) {
+        argv[i] = strdup(cmd[i].c_str());
+    }
+    argv[cmd.size()] = nullptr;
+    return argv;
+}
+
+void run_pipeline(
+    const std::vector<std::string>& left,
+    const std::vector<std::string>& right
+) {
+    int pipefd[2];
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        return;
+    }
+
+    pid_t pid1 = fork();
+    if (pid1 == 0) {
+        // Child 1 → cmd1
+        dup2(pipefd[1], STDOUT_FILENO);
+
+        close(pipefd[0]);
+        close(pipefd[1]);
+
+        char** argv = to_argv(left);
+        execvp(argv[0], argv);
+
+        perror("execvp");
+        exit(1);
+    }
+
+    pid_t pid2 = fork();
+    if (pid2 == 0) {
+        // Child 2 → cmd2
+        dup2(pipefd[0], STDIN_FILENO);
+
+        close(pipefd[1]);
+        close(pipefd[0]);
+
+        char** argv = to_argv(right);
+        execvp(argv[0], argv);
+
+        perror("execvp");
+        exit(1);
+    }
+
+    // Parent
+    close(pipefd[0]);
+    close(pipefd[1]);
+
+    waitpid(pid1, nullptr, 0);
+    waitpid(pid2, nullptr, 0);
+}
+
+void execute_pipe(std::vector<std::string>& tokens) {
+    auto it = std::find(tokens.begin(), tokens.end(), "|");
+
+    if (it != tokens.end()) {
+        std::vector<std::string> left(tokens.begin(), it);
+        std::vector<std::string> right(it + 1, tokens.end());
+
+        run_pipeline(left, right);
+        return;
+    }
+
+    // else → normal exec (already implemented by you)
+}
 
 int main() {
     // Flush after every std::cout / std:cerr
@@ -343,7 +413,13 @@ int main() {
     vector<string> tokens = tokenize(input);
     vector<string> args;
     
+    bool pipe = false;
+
     for(int i = 0; i < tokens.size(); i++) {
+        if(tokens[i] == "|") {
+            pipe = true;
+            break;
+        }
         if(tokens[i] == ">" || tokens[i] == "1>") {
             redirect_out = true;
             out_file = tokens[++i];
@@ -365,6 +441,11 @@ int main() {
             continue;
         }
         args.push_back(tokens[i]);
+    }
+
+    if(pipe) {
+        execute_pipe(tokens);
+        continue;
     }
 
     if(is_builtin(args[0])) {
