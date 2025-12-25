@@ -318,10 +318,10 @@ char** to_argv(const std::vector<std::string>& cmd) {
 }
 
 void run_pipeline(
-    const std::vector<std::string>& left,
-    const std::vector<std::string>& right
+     std::vector<std::string>& left,
+     std::vector<std::string>& right
 ) {
-    int pipefd[2];
+    int pipefd[2]; //pipefd[0] -> read end, pipefd[1] -> write end
     if (pipe(pipefd) == -1) {
         perror("pipe");
         return;
@@ -335,11 +335,17 @@ void run_pipeline(
         close(pipefd[0]);
         close(pipefd[1]);
 
-        char** argv = to_argv(left);
-        execvp(argv[0], argv);
-
-        perror("execvp");
-        exit(1);
+        // to handle builtin commands
+        if(is_builtin(left[0])) {
+            run_builtin(left);
+            exit(0);
+        }
+        else {
+            char** argv = to_argv(left);
+            execvp(argv[0], argv);
+            perror("execvp");
+            exit(1);
+        }
     }
 
     pid_t pid2 = fork();
@@ -350,11 +356,18 @@ void run_pipeline(
         close(pipefd[1]);
         close(pipefd[0]);
 
-        char** argv = to_argv(right);
-        execvp(argv[0], argv);
+        // to handle builtin commands
+        if(is_builtin(right[0])) {
+            run_builtin(right);
+            exit(0);
+        }
+        else {
+            char** argv = to_argv(right);
+            execvp(argv[0], argv);
 
-        perror("execvp");
-        exit(1);
+            perror("execvp");
+            exit(1); // exit(1) means there has been certain failure executing child process
+        }
     }
 
     // Parent
