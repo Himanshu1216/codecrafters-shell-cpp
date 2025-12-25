@@ -318,7 +318,7 @@ char** to_argv(const std::vector<std::string>& cmd) {
     return argv;
 }
 
-void run_pipeline(
+void run_pipeline_single(
      std::vector<std::string>& left,
      std::vector<std::string>& right
 ) {
@@ -379,18 +379,101 @@ void run_pipeline(
     waitpid(pid2, nullptr, 0);
 }
 
-void execute_pipe(std::vector<std::string>& tokens) {
-    auto it = std::find(tokens.begin(), tokens.end(), "|");
+void run_pipeline(vector<vector<string>>& cmds) {
+    int n = cmds.size();
+    int prev_read = -1;              // read end of previous pipe
+    vector<pid_t> pids;
 
-    if (it != tokens.end()) {
-        std::vector<std::string> left(tokens.begin(), it);
-        std::vector<std::string> right(it + 1, tokens.end());
+    for (int i = 0; i < n; i++) {
+        int pipefd[2];
 
-        run_pipeline(left, right);
-        return;
+        // Create pipe except for last command
+        if (i < n - 1) {
+            if (pipe(pipefd) == -1) {
+                perror("pipe");
+                return;
+            }
+        }
+
+        pid_t pid = fork();
+        if (pid == 0) {
+            // -------- CHILD --------
+
+            // If not first command → read from previous pipe
+            if (prev_read != -1) {
+                dup2(prev_read, STDIN_FILENO);
+            }
+
+            // If not last command → write to next pipe
+            if (i < n - 1) {
+                dup2(pipefd[1], STDOUT_FILENO);
+            }
+
+            // Close all fds in child
+            if (prev_read != -1) close(prev_read);
+            if (i < n - 1) {
+                close(pipefd[0]);
+                close(pipefd[1]);
+            }
+
+            // Execute
+            if (is_builtin(cmds[i][0])) {
+                run_builtin(cmds[i]);
+                exit(0);
+            } else {
+                char** argv = to_argv(cmds[i]);
+                execvp(argv[0], argv);
+                perror("execvp");
+                exit(1);
+            }
+        }
+
+        // -------- PARENT --------
+        pids.push_back(pid);
+
+        if (prev_read != -1) close(prev_read);
+        if (i < n - 1) {
+            close(pipefd[1]);         // parent doesn’t write
+            prev_read = pipefd[0];    // next command reads from here
+        }
     }
 
-    // else → normal exec (already implemented by you)
+    // Wait for all children
+    for (pid_t pid : pids) {
+        waitpid(pid, nullptr, 0);
+    }
+}
+
+vector<vector<string>> split_pipeline(const vector<string>& tokens) {
+    vector<vector<string>> cmds;
+    vector<string> current;
+
+    for (const auto& tok : tokens) {
+        if (tok == "|") {
+            cmds.push_back(current);
+            current.clear();
+        } else {
+            current.push_back(tok);
+        }
+    }
+    cmds.push_back(current);
+    return cmds;
+}
+
+
+void execute_pipe(std::vector<std::string>& tokens) {
+    // auto it = std::find(tokens.begin(), tokens.end(), "|");
+
+    // if (it != tokens.end()) {
+    //     std::vector<std::string> left(tokens.begin(), it);
+    //     std::vector<std::string> right(it + 1, tokens.end());
+
+    //     run_pipeline(left, right);
+    //     return;
+    // }
+
+    auto cmds = split_pipeline(tokens);
+    run_pipeline(cmds);
 }
 
 int main() {
