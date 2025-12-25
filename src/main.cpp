@@ -14,7 +14,7 @@
 using namespace std;
 
 bool checkCommand(const std::string& cmd) {
-  if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd" || cmd == "cd") {
+  if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd" || cmd == "cd" || cmd == "history") {
     std::cout << cmd << " is a shell builtin\n";
     return true;
   }
@@ -161,7 +161,7 @@ void run_external(vector<string>& input) {
 }
 
 bool is_builtin(string cmd) {
-    if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd" || cmd == "cd") return true;
+    if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd" || cmd == "cd" || cmd == "history") return true;
     return false;
 }
 
