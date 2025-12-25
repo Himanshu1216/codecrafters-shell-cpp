@@ -180,7 +180,8 @@ void run_builtin(vector<string>& args) {
     else if(cmd == "echo") {
         // cout << "hello\n";
         for(int i = 1; i < args.size(); i++) {
-            cout << args[i] << ' ';
+            cout << args[i];
+            if(i != args.size() - 1) cout << ' '; // otherwise giving wrong in case of wc (counting extra space)
         }
         cout << '\n';
     }
