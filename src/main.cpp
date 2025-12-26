@@ -11,9 +11,11 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#include <fstream>
+
 using namespace std;
 
-vector<vector<string>> cmd_history;
+vector<string> cmd_history;
 
 bool checkCommand(const std::string& cmd) {
   if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd" || cmd == "cd" || cmd == "history") {
@@ -167,6 +169,21 @@ bool is_builtin(string cmd) {
     return false;
 }
 
+void read_history_file(string path) {
+    ifstream file(path);
+    if(!file.is_open()) {
+        perror("history");
+    }
+    string line;
+    while(getline(file, line)) {
+        if(!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if(line.empty()) continue;
+        cmd_history.push_back(line);
+    }
+}
+
 void run_builtin(vector<string>& args) {
     string cmd = args[0];
     if(cmd == "type") {
@@ -205,15 +222,16 @@ void run_builtin(vector<string>& args) {
     else if(cmd == "history") {
         int len = cmd_history.size();
         int n = len;
+        if(args.size() == 3 && args[1] == "-r") {
+            read_history_file(args[2]);
+            return;
+        }
         if(args.size() > 1) {
             n = stoi(args[1]);
         }
         for(int i = len - n; i < cmd_history.size(); i++) {
             cout << '\t' << i + 1 << ' ';
-            for(string tokens : cmd_history[i]) {
-                cout << tokens << ' ';
-            }
-            cout << endl;
+            cout << cmd_history[i] << endl;
         }
     }
 }
@@ -514,6 +532,7 @@ int main() {
         add_history(line);      // optional but recommended
 
     input = line;
+    cmd_history.push_back(input);
     free(line);
 
     input += ' ';
@@ -524,7 +543,6 @@ int main() {
     bool redirect_err = false, append_err = false;
     string out_file, err_file;
     vector<string> tokens = tokenize(input);
-    cmd_history.push_back(tokens);
     vector<string> args;
     
     bool pipe = false;
