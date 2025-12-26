@@ -200,7 +200,6 @@ void write_history_file(string path) {
     ofstream file(path);
     if(!file) {
         cerr << "Error opening file\n";
-        return 1;
     }
     for(string& cmd : cmd_history) {
         file << cmd << '\n';
