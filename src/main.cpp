@@ -208,6 +208,18 @@ void write_history_file(string path) {
     file.close();
 }
 
+void append_history_file(string path) {
+    ofstream file(path, std::ios::app);
+    if(!file) {
+        cerr << "Error appending to the file";
+        return;
+    }
+    for(string& cmd : cmd_history) {
+        file << cmd << '\n';
+    }
+    file.close();
+}
+
 void run_builtin(vector<string>& args) {
     string cmd = args[0];
     if(cmd == "type") {
@@ -253,6 +265,9 @@ void run_builtin(vector<string>& args) {
         if(args.size() == 3 && args[1] == "-w") {
             write_history_file(args[2]);
             return;
+        }
+        if(args.size() == 3 && args[1] == "-a") {
+            append_history_file(args[2]);
         }
         if(args.size() > 1) {
             n = stoi(args[1]);
