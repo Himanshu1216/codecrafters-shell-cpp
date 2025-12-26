@@ -624,7 +624,6 @@ int main() {
         execute_pipe(tokens);
         continue;
     }
-
     if(is_builtin(args[0])) {
         int saved_stdout = -1;
         int saved_stderr = -1;
