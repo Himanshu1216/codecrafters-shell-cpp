@@ -13,6 +13,8 @@
 
 using namespace std;
 
+vector<string> cmd_history;
+
 bool checkCommand(const std::string& cmd) {
   if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd" || cmd == "cd" || cmd == "history") {
     std::cout << cmd << " is a shell builtin\n";
@@ -199,6 +201,11 @@ void run_builtin(vector<string>& args) {
         cout << filesystem::current_path().string() << endl; // without .string() path is output with "" to safely represents paths with spaces.
         // string pwd = filesystem::current_path();
         // cout << pwd << endl;
+    }
+    else if(cmd == "history") {
+        for(int i = 0; i < cmd_history.size(); i++) {
+            cout << '\t' << i + 1 << ' ' << cmd_history[i] << endl;
+        }
     }
 }
 
@@ -544,6 +551,8 @@ int main() {
         execute_pipe(tokens);
         continue;
     }
+
+    cmd_history.push_back(args[0]);
 
     if(is_builtin(args[0])) {
         int saved_stdout = -1;
