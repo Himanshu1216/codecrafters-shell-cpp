@@ -204,7 +204,7 @@ void write_history_file(string path) {
     for(string& cmd : cmd_history) {
         file << cmd << '\n';
     }
-    file << '\n';
+    // file << '\n';
     file.close();
 }
 
