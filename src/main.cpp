@@ -203,7 +203,12 @@ void run_builtin(vector<string>& args) {
         // cout << pwd << endl;
     }
     else if(cmd == "history") {
-        for(int i = 0; i < cmd_history.size(); i++) {
+        int len = cmd_history.size();
+        int n = len;
+        if(args.size() > 1) {
+            n = stoi(args[1]);
+        }
+        for(int i = len - n; i < cmd_history.size(); i++) {
             cout << '\t' << i + 1 << ' ';
             for(string tokens : cmd_history[i]) {
                 cout << tokens << ' ';
