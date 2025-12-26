@@ -13,7 +13,7 @@
 
 using namespace std;
 
-vector<string> cmd_history;
+vector<vector<string>> cmd_history;
 
 bool checkCommand(const std::string& cmd) {
   if(cmd == "type" || cmd == "echo" || cmd == "exit" || cmd == "pwd" || cmd == "cd" || cmd == "history") {
@@ -204,7 +204,11 @@ void run_builtin(vector<string>& args) {
     }
     else if(cmd == "history") {
         for(int i = 0; i < cmd_history.size(); i++) {
-            cout << '\t' << i + 1 << ' ' << cmd_history[i] << endl;
+            cout << '\t' << i + 1 << ' ';
+            for(string tokens : cmd_history[i]) {
+                cout << tokens << ' ';
+            }
+            cout << endl;
         }
     }
 }
@@ -515,6 +519,7 @@ int main() {
     bool redirect_err = false, append_err = false;
     string out_file, err_file;
     vector<string> tokens = tokenize(input);
+    cmd_history.push_back(tokens);
     vector<string> args;
     
     bool pipe = false;
@@ -522,7 +527,7 @@ int main() {
     for(int i = 0; i < tokens.size(); i++) {
         if(tokens[i] == "|") {
             pipe = true;
-            break;
+            // break;
         }
         if(tokens[i] == ">" || tokens[i] == "1>") {
             redirect_out = true;
@@ -551,8 +556,6 @@ int main() {
         execute_pipe(tokens);
         continue;
     }
-
-    cmd_history.push_back(args[0]);
 
     if(is_builtin(args[0])) {
         int saved_stdout = -1;
