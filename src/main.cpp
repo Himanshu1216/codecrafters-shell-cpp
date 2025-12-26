@@ -268,6 +268,7 @@ void run_builtin(vector<string>& args) {
         }
         if(args.size() == 3 && args[1] == "-a") {
             append_history_file(args[2]);
+            return;
         }
         if(args.size() > 1) {
             n = stoi(args[1]);
