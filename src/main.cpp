@@ -218,6 +218,7 @@ void append_history_file(string path) {
         file << cmd << '\n';
     }
     file.close();
+    cmd_history.clear();
 }
 
 void run_builtin(vector<string>& args) {
