@@ -170,6 +170,7 @@ bool is_builtin(string cmd) {
 }
 
 void read_history_file(string path) {
+    // can also use 
     ifstream file(path);
     if(!file.is_open()) {
         perror("history");
@@ -181,7 +182,31 @@ void read_history_file(string path) {
         }
         if(line.empty()) continue;
         cmd_history.push_back(line);
+        // can also use readline library
+        // Append to in-memory history
+        // add_history(line.c_str());
+        // void print_history() {
+        //     HIST_ENTRY** list = history_list();
+        //     if (!list) return;
+
+        //     for (int i = 0; list[i]; i++) {
+        //         std::cout << "    " << i + 1 << "  " << list[i]->line << "\n";
+        //     }
+        // }
     }
+}
+
+void write_history_file(string path) {
+    ofstream file(path);
+    if(!file) {
+        cerr << "Error opening file\n";
+        return 1;
+    }
+    for(string& cmd : cmd_history) {
+        file << cmd << '\n';
+    }
+    file << '\n';
+    file.close();
 }
 
 void run_builtin(vector<string>& args) {
@@ -224,6 +249,10 @@ void run_builtin(vector<string>& args) {
         int n = len;
         if(args.size() == 3 && args[1] == "-r") {
             read_history_file(args[2]);
+            return;
+        }
+        if(args.size() == 3 && args[1] == "-w") {
+            write_history_file(args[2]);
             return;
         }
         if(args.size() > 1) {
