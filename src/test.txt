@@ -1,0 +1,10 @@
+echo hello world
+type exit
+history -w test.txt
+echo 1
+echo 2
+history -a test.txt
+history
+exit
+history
+exit
