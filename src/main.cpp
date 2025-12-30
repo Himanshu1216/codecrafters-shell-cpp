@@ -230,9 +230,9 @@ void run_builtin(vector<string>& args) {
             }
         }   
     }
-    else if(cmd == "exit") {
-        exit(0);
-    }
+    // else if(cmd == "exit") {
+    //     exit(0);
+    // }
     else if(cmd == "echo") {
         // cout << "hello\n";
         for(int i = 1; i < args.size(); i++) {
@@ -259,6 +259,7 @@ void run_builtin(vector<string>& args) {
     else if(cmd == "history") {
         int len = cmd_history.size();
         int n = len;
+
         if(args.size() == 3 && args[1] == "-r") {
             read_history_file(args[2]);
             return;
@@ -566,97 +567,108 @@ int main() {
     // Register completion function
     rl_attempted_completion_function = completion;
 
-  while(true) {
-    // std::cout << "$ ";
-    // std::getline(std::cin, input);
-
-    char* line = readline("$ ");
-    if (!line) break;           // Ctrl+D exits shell
-
-    if (*line)
-        add_history(line);      // optional but recommended
-
-    input = line;
-    cmd_history.push_back(input);
-    free(line);
-
-    input += ' ';
-    // cout << input.size() << endl;
-    // cout << input << endl;
-
-    bool redirect_out = false, append_out = false;
-    bool redirect_err = false, append_err = false;
-    string out_file, err_file;
-    vector<string> tokens = tokenize(input);
-    vector<string> args;
-    
-    bool pipe = false;
-
-    for(int i = 0; i < tokens.size(); i++) {
-        if(tokens[i] == "|") {
-            pipe = true;
-            // break;
-        }
-        if(tokens[i] == ">" || tokens[i] == "1>") {
-            redirect_out = true;
-            out_file = tokens[++i];
-            continue;
-        }
-        else if(tokens[i] == ">>" || tokens[i] == "1>>") {
-            append_out = true;
-            out_file = tokens[++i];
-            continue;
-        }
-        else if(tokens[i] == "2>") {
-            redirect_err = true;
-            err_file = tokens[++i];
-            continue;
-        }
-        else if(tokens[i] == "2>>") {
-            append_err = true;
-            err_file = tokens[++i];
-            continue;
-        }
-        args.push_back(tokens[i]);
+    char* hist_file = getenv("HISTFILE");
+    if(hist_file) {
+        read_history_file(string(hist_file));
     }
 
-    if(pipe) {
-        execute_pipe(tokens);
-        continue;
+    while(true) {
+        // std::cout << "$ ";
+        // std::getline(std::cin, input);
+
+        char* line = readline("$ ");
+        if (!line) break;           // Ctrl+D exits shell
+
+        if (*line)
+            add_history(line);      // optional but recommended
+
+        input = line;
+        cmd_history.push_back(input);
+        free(line);
+
+        input += ' ';
+        // cout << input.size() << endl;
+        // cout << input << endl;
+
+        bool redirect_out = false, append_out = false;
+        bool redirect_err = false, append_err = false;
+        string out_file, err_file;
+        vector<string> tokens = tokenize(input);
+        vector<string> args;
+        
+        bool pipe = false;
+
+        for(int i = 0; i < tokens.size(); i++) {
+            if(tokens[i] == "|") {
+                pipe = true;
+                // break;
+            }
+            if(tokens[i] == ">" || tokens[i] == "1>") {
+                redirect_out = true;
+                out_file = tokens[++i];
+                continue;
+            }
+            else if(tokens[i] == ">>" || tokens[i] == "1>>") {
+                append_out = true;
+                out_file = tokens[++i];
+                continue;
+            }
+            else if(tokens[i] == "2>") {
+                redirect_err = true;
+                err_file = tokens[++i];
+                continue;
+            }
+            else if(tokens[i] == "2>>") {
+                append_err = true;
+                err_file = tokens[++i];
+                continue;
+            }
+            args.push_back(tokens[i]);
+        }
+
+        if(pipe) {
+            execute_pipe(tokens);
+            continue;
+        }
+        if(is_builtin(args[0])) {
+            if(args[0] == "exit") {
+                break;
+            }
+            int saved_stdout = -1;
+            int saved_stderr = -1;
+
+            if(redirect_out || append_out) {
+                saved_stdout = dup(STDOUT_FILENO);
+                int flags = O_WRONLY | O_CREAT | (append_out ? O_APPEND : O_TRUNC);
+                int fd = open(out_file.c_str(), flags, 0644);
+                dup2(fd, STDOUT_FILENO);
+                close(fd);
+            }
+
+            if(redirect_err || append_err) {
+                saved_stderr = dup(STDERR_FILENO);
+                int flags = O_WRONLY | O_CREAT | (append_err ? O_APPEND : O_TRUNC);
+                int fd = open(err_file.c_str(), flags, 0644);
+                dup2(fd, STDERR_FILENO);
+                close(fd);
+            }
+
+            run_builtin(args);
+
+            if(saved_stdout != -1) {
+                dup2(saved_stdout, STDOUT_FILENO);
+                close(saved_stdout);
+            }
+
+            if(saved_stderr != -1) {
+                dup2(saved_stderr, STDERR_FILENO);
+                close(saved_stderr);
+            }
+
+        }
+        else run_external(tokens);
     }
-    if(is_builtin(args[0])) {
-        int saved_stdout = -1;
-        int saved_stderr = -1;
-
-        if(redirect_out || append_out) {
-            saved_stdout = dup(STDOUT_FILENO);
-            int flags = O_WRONLY | O_CREAT | (append_out ? O_APPEND : O_TRUNC);
-            int fd = open(out_file.c_str(), flags, 0644);
-            dup2(fd, STDOUT_FILENO);
-            close(fd);
-        }
-
-        if(redirect_err || append_err) {
-            saved_stderr = dup(STDERR_FILENO);
-            int flags = O_WRONLY | O_CREAT | (append_err ? O_APPEND : O_TRUNC);
-            int fd = open(err_file.c_str(), flags, 0644);
-            dup2(fd, STDERR_FILENO);
-            close(fd);
-        }
-
-        run_builtin(args);
-
-        if(saved_stdout != -1) {
-            dup2(saved_stdout, STDOUT_FILENO);
-            close(saved_stdout);
-        }
-
-        if(saved_stderr != -1) {
-            dup2(saved_stderr, STDERR_FILENO);
-            close(saved_stderr);
-        }
-
+    if(hist_file) {
+        write_history_file(string(hist_file));
     }
-    else run_external(tokens);
-  }
 }
